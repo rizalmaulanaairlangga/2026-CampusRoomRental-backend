@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Backend.Controllers;
 
 [ApiController]
-[Route("rooms")]
+[Route("api/[controller]")]
 public class RoomsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
