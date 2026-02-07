@@ -18,33 +18,33 @@ public static class DbSeeder
         context.Rooms.AddRange(rooms);
         context.SaveChanges();
 
+        var today = DateTime.UtcNow.Date;
+
+        // helper untuk bikin booking 1 jam
+        Booking CreateBooking(int roomId, int startHour)
+        {
+            return new Booking
+            {
+                RoomId = roomId,
+                StartTime = today.AddHours(startHour),
+                EndTime = today.AddHours(startHour + 1),
+                Status = "booked",
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+
         var bookings = new List<Booking>
         {
-            new() {
-                RoomId = rooms[0].Id,
-                StartTime = DateTime.UtcNow.AddHours(1),
-                EndTime = DateTime.UtcNow.AddHours(2)
-            },
-            new() {
-                RoomId = rooms[0].Id,
-                StartTime = DateTime.UtcNow.AddHours(3),
-                EndTime = DateTime.UtcNow.AddHours(4)
-            },
-            new() {
-                RoomId = rooms[1].Id,
-                StartTime = DateTime.UtcNow.AddHours(1),
-                EndTime = DateTime.UtcNow.AddHours(2)
-            },
-            new() {
-                RoomId = rooms[1].Id,
-                StartTime = DateTime.UtcNow.AddHours(3),
-                EndTime = DateTime.UtcNow.AddHours(4)
-            },
-            new() {
-                RoomId = rooms[2].Id,
-                StartTime = DateTime.UtcNow.AddHours(1),
-                EndTime = DateTime.UtcNow.AddHours(2)
-            }
+            // Room 1
+            CreateBooking(rooms[0].Id, 8),  // 08:00–09:00
+            CreateBooking(rooms[0].Id, 10), // 10:00–11:00
+
+            // Room 2
+            CreateBooking(rooms[1].Id, 8),
+            CreateBooking(rooms[1].Id, 10),
+
+            // Room 3
+            CreateBooking(rooms[2].Id, 9)
         };
 
         context.Bookings.AddRange(bookings);
