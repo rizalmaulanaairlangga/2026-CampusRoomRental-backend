@@ -5,10 +5,10 @@ namespace Backend.DTOs;
 public class BookingUpdateDto
 {
     [Required]
-    public DateTime StartTime { get; set; }
+    public DateTimeOffset  StartTime { get; set; }
 
     [Required]
-    public DateTime EndTime { get; set; }
+    public DateTimeOffset  EndTime { get; set; }
 
     public string Status { get; set; } = "booked";
 }

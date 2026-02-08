@@ -133,7 +133,7 @@ public class BookingsController : ControllerBase
         booking.StartTime = dto.StartTime;
         booking.EndTime = dto.EndTime;
         booking.Status = dto.Status;
-        booking.UpdatedAt = DateTime.UtcNow;
+        booking.UpdatedAt = DateTimeOffset .UtcNow;
 
         await _context.SaveChangesAsync();
         return Ok(booking);
@@ -150,7 +150,7 @@ public class BookingsController : ControllerBase
             return NotFound(new { message = "Booking not found" });
 
         booking.Status = "cancelled";
-        booking.DeletedAt = DateTime.UtcNow;
+        booking.DeletedAt = DateTimeOffset .UtcNow;
 
         await _context.SaveChangesAsync();
         return NoContent();

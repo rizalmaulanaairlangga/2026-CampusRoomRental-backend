@@ -8,8 +8,8 @@ public class BookingCreateDto
     public int RoomId { get; set; }
 
     [Required]
-    public DateTime StartTime { get; set; }
+    public DateTimeOffset  StartTime { get; set; }
 
     [Required]
-    public DateTime EndTime { get; set; }
+    public DateTimeOffset  EndTime { get; set; }
 }

@@ -94,7 +94,7 @@ public class RoomsController : ControllerBase
         room.Name = dto.Name;
         room.Capacity = dto.Capacity;
         room.Status = dto.Status;
-        room.UpdatedAt = DateTime.UtcNow;
+        room.UpdatedAt = DateTimeOffset .UtcNow;
 
         await _context.SaveChangesAsync();
         return Ok(room);
@@ -110,7 +110,7 @@ public class RoomsController : ControllerBase
         if (room == null)
             return NotFound(new { message = "Room not found" });
 
-        room.DeletedAt = DateTime.UtcNow;
+        room.DeletedAt = DateTimeOffset .UtcNow;
         room.Status = "inactive";
         await _context.SaveChangesAsync();
 
@@ -130,7 +130,7 @@ public class RoomsController : ControllerBase
 
         room.DeletedAt = null;
         room.Status = "active";
-        room.UpdatedAt = DateTime.UtcNow;
+        room.UpdatedAt = DateTimeOffset .UtcNow;
 
         await _context.SaveChangesAsync();
 

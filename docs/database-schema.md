@@ -8,9 +8,9 @@ Master data ruangan yang bisa dibooking.
 | name       | string     | ✔        | Nama ruangan          |
 | capacity   | int        | ✖        | Kapasitas             |
 | status     | string     | ✔        | `active` / `inactive` |
-| created_at | datetime   | ✔        | Waktu dibuat          |
-| updated_at | datetime   | ✔        | Waktu update          |
-| deleted_at | datetime   | ✖        | Soft delete           |
+| created_at | DateTimeOffset    | ✔        | Waktu dibuat          |
+| updated_at | DateTimeOffset    | ✔        | Waktu update          |
+| deleted_at | DateTimeOffset    | ✖        | Soft delete           |
 
 Entity 2: Booking
 Fungsi
@@ -20,10 +20,10 @@ Menyimpan data peminjaman ruangan.
 | ---------- | ---------- | -------- | ---------------------- |
 | id         | UUID / int | ✔        | Primary Key            |
 | room_id    | FK         | ✔        | Relasi ke Room         |
-| start_time | datetime   | ✔        | Waktu mulai            |
-| end_time   | datetime   | ✔        | Waktu selesai          |
+| start_time | DateTimeOffset    | ✔        | Waktu mulai            |
+| end_time   | DateTimeOffset    | ✔        | Waktu selesai          |
 | status     | string     | ✔        | `booked` / `cancelled` |
-| created_at | datetime   | ✔        | Waktu dibuat           |
-| updated_at | datetime   | ✔        | Waktu update           |
-| deleted_at | datetime   | ✖        | Soft delete            |
+| created_at | DateTimeOffset    | ✔        | Waktu dibuat           |
+| updated_at | DateTimeOffset    | ✔        | Waktu update           |
+| deleted_at | DateTimeOffset    | ✖        | Soft delete            |
 

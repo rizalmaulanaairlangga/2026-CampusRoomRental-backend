@@ -7,9 +7,9 @@ public class Room
     public int Capacity { get; set; }
     public string Status { get; set; } = "active";
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? DeletedAt { get; set; }
+    public DateTimeOffset  CreatedAt { get; set; } = DateTimeOffset .UtcNow;
+    public DateTimeOffset  UpdatedAt { get; set; } = DateTimeOffset .UtcNow;
+    public DateTimeOffset ? DeletedAt { get; set; }
 
     public ICollection<Booking>? Bookings { get; set; }
 }

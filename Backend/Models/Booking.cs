@@ -7,12 +7,12 @@ public class Booking
     public int RoomId { get; set; }
     public Room? Room { get; set; }
 
-    public DateTime StartTime { get; set; }
-    public DateTime EndTime { get; set; }
+    public DateTimeOffset  StartTime { get; set; }
+    public DateTimeOffset  EndTime { get; set; }
 
     public string Status { get; set; } = "booked";
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? DeletedAt { get; set; }
+    public DateTimeOffset  CreatedAt { get; set; } = DateTimeOffset .UtcNow;
+    public DateTimeOffset  UpdatedAt { get; set; } = DateTimeOffset .UtcNow;
+    public DateTimeOffset ? DeletedAt { get; set; }
 }

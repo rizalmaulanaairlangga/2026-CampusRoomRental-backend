@@ -18,18 +18,22 @@ public static class DbSeeder
         context.Rooms.AddRange(rooms);
         context.SaveChanges();
 
-        var today = DateTime.UtcNow.Date;
+        var wib = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        var todayWib = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, wib).Date;
 
         // helper untuk bikin booking 1 jam
         Booking CreateBooking(int roomId, int startHour)
         {
+            var startLocal = todayWib.AddHours(startHour);
+            var endLocal = startLocal.AddHours(1);
+
             return new Booking
             {
                 RoomId = roomId,
-                StartTime = today.AddHours(startHour),
-                EndTime = today.AddHours(startHour + 1),
+                StartTime = startLocal.ToUniversalTime(),
+                EndTime = endLocal.ToUniversalTime(),
                 Status = "booked",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow
             };
         }
 

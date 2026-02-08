@@ -6,5 +6,5 @@ public class RoomResponseDto
     public string Name { get; set; } = null!;
     public int Capacity { get; set; }
     public string Status { get; set; } = null!;
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset  CreatedAt { get; set; }
 }
