@@ -36,7 +36,23 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendDev", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
+
+app.UseRouting();
+app.UseCors("FrontendDev");
+app.UseAuthorization();
 
 // Swagger
 if (app.Environment.IsDevelopment())
