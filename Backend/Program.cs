@@ -1,21 +1,31 @@
 using Backend.Data;
 using Backend.Middleware;
+using Backend.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ==============================
 // Controllers + Swagger
+// ==============================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ==============================
 // DbContext
+// ==============================
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
-// ✅ CONFIGURE ApiBehaviorOptions HARUS DI SINI
+// ==============================
+// API Validation Response Format
+// ==============================
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -36,7 +46,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
-
+// ==============================
+// CORS
+// ==============================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
@@ -48,10 +60,49 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ==============================
+// Services
+// ==============================
+builder.Services.AddScoped<PasswordHasher>();
+builder.Services.AddScoped<JwtTokenService>();
+
+// ==============================
+// Authentication (JWT)
+// ==============================
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+            )
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// ==============================
+// BUILD APP
+// ==============================
 var app = builder.Build();
 
+// ==============================
+// Middleware Pipeline
+// ==============================
 app.UseRouting();
+
 app.UseCors("FrontendDev");
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Swagger
@@ -61,13 +112,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Middleware
+// Global Exception Handler
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok("healthy"));
 
+// ==============================
 // Seeder
+// ==============================
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
