@@ -35,7 +35,7 @@ namespace Backend.Controllers
                 Email = request.Email,
                 Name = request.Name,
                 PasswordHash = _hasher.Hash(request.Password),
-                Role = "User"
+                Role = "user"
             };
 
             _context.Users.Add(user);

@@ -1,3 +1,4 @@
+using Backend.Services;
 using Backend.Models;
 
 namespace Backend.Data;
@@ -6,24 +7,22 @@ public static class DbSeeder
 {
     public static void Seed(ApplicationDbContext context)
     {
-        // =============================
         // RESET DATA (DEV ONLY)
-        // =============================
         context.Bookings.RemoveRange(context.Bookings);
         context.Rooms.RemoveRange(context.Rooms);
         context.Users.RemoveRange(context.Users);
         context.SaveChanges();
 
-        // =============================
+        var hasher = new PasswordHasher();
+
         // USERS
-        // =============================
         var adminUser = new User
         {
             Id = Guid.NewGuid(),
             Email = "admin@local",
             Name = "Admin",
             Role = "admin",
-            PasswordHash = "DEV_ONLY",
+            PasswordHash = hasher.Hash("admin123"),
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -33,16 +32,14 @@ public static class DbSeeder
             Email = "user@local",
             Name = "User",
             Role = "user",
-            PasswordHash = "DEV_ONLY",
+            PasswordHash = hasher.Hash("user123"),
             CreatedAt = DateTimeOffset.UtcNow
         };
 
         context.Users.AddRange(adminUser, normalUser);
         context.SaveChanges();
 
-        // =============================
         // ROOMS
-        // =============================
         var rooms = new[]
         {
             new Room { Name = "Meeting Room A", Capacity = 10 },
@@ -53,9 +50,7 @@ public static class DbSeeder
         context.Rooms.AddRange(rooms);
         context.SaveChanges();
 
-        // =============================
-        // TIME SETUP (WIB SAFE)
-        // =============================
+        // TIME SETUP (WIB)
         var wib = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
         var todayWib = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, wib).Date;
 
@@ -65,9 +60,7 @@ public static class DbSeeder
             return TimeZoneInfo.ConvertTimeToUtc(local, wib);
         }
 
-        // =============================
-        // BOOKINGS (CONFIG-DRIVEN)
-        // =============================
+        // BOOKINGS
         var bookingConfigs = new[]
         {
             (room: rooms[0], hour: 8, user: normalUser),

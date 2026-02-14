@@ -4,11 +4,13 @@ using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class BookingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -22,8 +24,18 @@ public class BookingsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetBookings()
     {
-        var bookings = await _context.Bookings
-            .Where(b => b.DeletedAt == null)
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var role = User.FindFirstValue(ClaimTypes.Role);
+
+        var query = _context.Bookings
+            .Where(b => b.DeletedAt == null);
+
+        if (role != "admin")
+        {
+            query = query.Where(b => b.UserId == userId);
+        }
+
+        var bookings = await query
             .Select(b => new BookingResponseDto
             {
                 Id = b.Id,
@@ -43,25 +55,30 @@ public class BookingsController : ControllerBase
     public async Task<IActionResult> GetBooking(int id)
     {
         var booking = await _context.Bookings
-            .Where(b => b.Id == id && b.DeletedAt == null)
-            .Select(b => new BookingResponseDto
-            {
-                Id = b.Id,
-                RoomId = b.RoomId,
-                StartTime = b.StartTime,
-                EndTime = b.EndTime,
-                Status = b.Status,
-                CreatedAt = b.CreatedAt
-            })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(b => b.Id == id && b.DeletedAt == null);
 
         if (booking == null)
-            return NotFound(new { message = "Booking not found" });
+            return NotFound();
 
-        return Ok(booking);
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var role = User.FindFirstValue(ClaimTypes.Role);
+
+        if (booking.UserId != userId && role != "admin")
+            return Forbid();
+
+        return Ok(new BookingResponseDto
+        {
+            Id = booking.Id,
+            RoomId = booking.RoomId,
+            StartTime = booking.StartTime,
+            EndTime = booking.EndTime,
+            Status = booking.Status,
+            CreatedAt = booking.CreatedAt
+        });
     }
 
     // POST /bookings
+    [Authorize(Roles = "user")]
     [HttpPost]
     public async Task<IActionResult> CreateBooking([FromBody] BookingCreateDto dto)
     {
@@ -108,30 +125,26 @@ public class BookingsController : ControllerBase
     }
 
     // PUT /bookings/{id}
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateBooking(int id, [FromBody] BookingUpdateDto dto)
+    [Authorize(Roles = "user")]
+    [HttpPut("{id}/reschedule")]
+    public async Task<IActionResult> RescheduleBooking(int id, BookingRescheduleDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
         if (dto.EndTime <= dto.StartTime)
-            return BadRequest(new { message = "EndTime must be after StartTime" });
+            return BadRequest("EndTime must be after StartTime");
 
         var booking = await _context.Bookings
             .FirstOrDefaultAsync(b => b.Id == id && b.DeletedAt == null);
 
         if (booking == null)
-            return NotFound(new { message = "Booking not found" });
+            return NotFound();
 
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
-
-        if (booking.UserId != userId && role != "Admin")
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (booking.UserId != userId)
             return Forbid();
 
         var hasConflict = await _context.Bookings.AnyAsync(b =>
-            b.RoomId == booking.RoomId &&
             b.Id != id &&
+            b.RoomId == dto.RoomId &&
             b.DeletedAt == null &&
             b.Status == "booked" &&
             dto.StartTime < b.EndTime &&
@@ -139,10 +152,27 @@ public class BookingsController : ControllerBase
         );
 
         if (hasConflict)
-            return Conflict(new { message = "Booking time conflicts with another booking" });
+            return Conflict("Room already booked");
 
+        booking.RoomId = dto.RoomId;
         booking.StartTime = dto.StartTime;
         booking.EndTime = dto.EndTime;
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return Ok(booking);
+    }
+
+    [Authorize(Roles = "admin")]
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> UpdateBookingStatus(int id, BookingStatusUpdateDto dto)
+    {
+        var booking = await _context.Bookings
+            .FirstOrDefaultAsync(b => b.Id == id && b.DeletedAt == null);
+
+        if (booking == null)
+            return NotFound();
+
         booking.Status = dto.Status;
         booking.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -163,7 +193,7 @@ public class BookingsController : ControllerBase
         var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
 
-        if (booking.UserId != userId && role != "Admin")
+        if (booking.UserId != userId && role != "admin")
             return Forbid();
 
         booking.Status = "cancelled";
