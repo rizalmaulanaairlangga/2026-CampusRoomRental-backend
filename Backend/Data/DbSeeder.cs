@@ -1,3 +1,4 @@
+using Backend.Services;
 using Backend.Models;
 
 namespace Backend.Data;
@@ -6,50 +7,78 @@ public static class DbSeeder
 {
     public static void Seed(ApplicationDbContext context)
     {
-        if (context.Rooms.Any()) return;
+        // RESET DATA (DEV ONLY)
+        context.Bookings.RemoveRange(context.Bookings);
+        context.Rooms.RemoveRange(context.Rooms);
+        context.Users.RemoveRange(context.Users);
+        context.SaveChanges();
 
-        var rooms = new List<Room>
+        var hasher = new PasswordHasher();
+
+        // USERS
+        var adminUser = new User
         {
-            new() { Name = "Meeting Room A", Capacity = 10 },
-            new() { Name = "Meeting Room B", Capacity = 20 },
-            new() { Name = "Conference Room", Capacity = 50 }
+            Id = Guid.NewGuid(),
+            Email = "admin@local",
+            Name = "Admin",
+            Role = "admin",
+            PasswordHash = hasher.Hash("admin123"),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        var normalUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "user@local",
+            Name = "User",
+            Role = "user",
+            PasswordHash = hasher.Hash("user123"),
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        context.Users.AddRange(adminUser, normalUser);
+        context.SaveChanges();
+
+        // ROOMS
+        var rooms = new[]
+        {
+            new Room { Name = "Meeting Room A", Capacity = 10 },
+            new Room { Name = "Meeting Room B", Capacity = 20 },
+            new Room { Name = "Conference Room", Capacity = 50 }
         };
 
         context.Rooms.AddRange(rooms);
         context.SaveChanges();
 
+        // TIME SETUP (WIB)
         var wib = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
         var todayWib = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, wib).Date;
 
-        // helper untuk bikin booking 1 jam
-        Booking CreateBooking(int roomId, int startHour)
+        DateTimeOffset ToUtc(int hour)
         {
-            var startLocal = todayWib.AddHours(startHour);
-            var endLocal = startLocal.AddHours(1);
-
-            return new Booking
-            {
-                RoomId = roomId,
-                StartTime = startLocal.ToUniversalTime(),
-                EndTime = endLocal.ToUniversalTime(),
-                Status = "booked",
-                CreatedAt = DateTimeOffset.UtcNow
-            };
+            var local = todayWib.AddHours(hour);
+            return TimeZoneInfo.ConvertTimeToUtc(local, wib);
         }
 
-        var bookings = new List<Booking>
+        // BOOKINGS
+        var bookingConfigs = new[]
         {
-            // Room 1
-            CreateBooking(rooms[0].Id, 8),  // 08:00–09:00
-            CreateBooking(rooms[0].Id, 10), // 10:00–11:00
-
-            // Room 2
-            CreateBooking(rooms[1].Id, 8),
-            CreateBooking(rooms[1].Id, 10),
-
-            // Room 3
-            CreateBooking(rooms[2].Id, 9)
+            (room: rooms[0], hour: 8, user: normalUser),
+            (room: rooms[0], hour: 10, user: normalUser),
+            (room: rooms[1], hour: 9, user: adminUser),
+            (room: rooms[1], hour: 11, user: adminUser),
+            (room: rooms[2], hour: 13, user: normalUser)
         };
+
+        var bookings = bookingConfigs.Select(cfg => new Booking
+        {
+            RoomId = cfg.room.Id,
+            UserId = cfg.user.Id,
+            StartTime = ToUtc(cfg.hour),
+            EndTime = ToUtc(cfg.hour + 1),
+            Status = "confirmed",
+            CreatedAt = DateTimeOffset.UtcNow
+        });
 
         context.Bookings.AddRange(bookings);
         context.SaveChanges();

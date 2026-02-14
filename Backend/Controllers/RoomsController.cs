@@ -3,11 +3,13 @@ using Backend.DTOs;
 using Backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "admin")]
 public class RoomsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -18,6 +20,7 @@ public class RoomsController : ControllerBase
     }
 
     // GET /rooms
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetRooms()
     {
@@ -37,6 +40,7 @@ public class RoomsController : ControllerBase
     }
 
     // GET /rooms/{id}
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetRoom(int id)
     {

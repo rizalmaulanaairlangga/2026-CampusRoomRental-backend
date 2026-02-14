@@ -1,14 +1,10 @@
-Diagram ASCII
 +------------------+
-|      rooms       |
+|      users       |
 +------------------+
 | id (PK)          |
-| name             |
-| capacity         |
-| status           |
+| email            |
+| role             |
 | created_at       |
-| updated_at       |
-| deleted_at       |
 +------------------+
          |
          | 1
@@ -18,6 +14,7 @@ Diagram ASCII
 |     bookings     |
 +------------------+
 | id (PK)          |
+| user_id (FK)     |
 | room_id (FK)     |
 | start_time       |
 | end_time         |
@@ -26,18 +23,10 @@ Diagram ASCII
 | updated_at       |
 | deleted_at       |
 +------------------+
-
-Relasi Antar Tabel
-- Room 1 — N Booking
-- Satu ruangan bisa memiliki banyak booking
-- Satu booking hanya milik satu room
-
-Relasi:
-rooms.id → bookings.room_id
-
-Untuk MVP:
-❌ Tidak pakai User dulu
-❌ Tidak pakai approval workflow
-❌ Tidak pakai audit log
-✅ Fokus: Room bisa dibooking
-✅ Validasi konflik dilakukan di backend logic (bukan DB constraint kompleks)
+         |
+         | N
+         |
+         | 1
++------------------+
+|      rooms       |
++------------------+

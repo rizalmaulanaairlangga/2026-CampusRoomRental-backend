@@ -15,4 +15,8 @@ public class Booking
     public DateTimeOffset  CreatedAt { get; set; } = DateTimeOffset .UtcNow;
     public DateTimeOffset  UpdatedAt { get; set; } = DateTimeOffset .UtcNow;
     public DateTimeOffset ? DeletedAt { get; set; }
+
+    public Guid UserId { get; set; }
+    public User User { get; set; } = null!;
+
 }
