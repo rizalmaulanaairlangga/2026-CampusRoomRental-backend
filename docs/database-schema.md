@@ -23,7 +23,7 @@ Menyimpan data peminjaman ruangan.
 | room_id    | FK                | ✔        | Relasi ke Room         |
 | start_time | DateTimeOffset    | ✔        | Waktu mulai            |
 | end_time   | DateTimeOffset    | ✔        | Waktu selesai          |
-| status     | string            | ✔        | `booked` / `cancelled` / `approved` / `rejected` |
+| status     | string            | ✔        | `pending` / `cancelled` / `approved` / `rejected` |
 | created_at | DateTimeOffset    | ✔        | Waktu dibuat           |
 | updated_at | DateTimeOffset    | ✔        | Waktu update           |
 | deleted_at | DateTimeOffset    | ✖        | Soft delete            |
