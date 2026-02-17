@@ -20,7 +20,7 @@ public class BookingsController : ControllerBase
         _context = context;
     }
 
-    // GET /bookings
+    // GET: api/bookings
     [HttpGet]
     public async Task<IActionResult> GetBookings()
     {
@@ -35,26 +35,46 @@ public class BookingsController : ControllerBase
             query = query.Where(b => b.UserId == userId);
         }
 
-        var bookings = await query
-            .Select(b => new BookingResponseDto
-            {
-                Id = b.Id,
-                RoomId = b.RoomId,
-                StartTime = b.StartTime,
-                EndTime = b.EndTime,
-                Status = b.Status,
-                CreatedAt = b.CreatedAt
-            })
-            .ToListAsync();
+var bookings = await query
+    .Include(b => b.Room)
+    .Include(b => b.User)
+    .Select(b => new BookingResponseDto
+    {
+        Id = b.Id,
+        RoomId = b.RoomId,
+        StartTime = b.StartTime,
+        EndTime = b.EndTime,
+        Status = b.Status.ToString().ToLower(),
+        CreatedAt = b.CreatedAt,
+
+        Room = new RoomResponseDto
+        {
+            Id = b.Room!.Id,
+            Name = b.Room.Name,
+            Capacity = b.Room.Capacity
+        },
+
+        User = new UserResponseDto
+        {
+            Id = b.User.Id,
+            Name = b.User.Name,
+            Email = b.User.Email,
+            Role = b.User.Role
+        }
+    })
+    .ToListAsync();
+
 
         return Ok(bookings);
     }
 
-    // GET /bookings/{id}
+    // GET: api/bookings/{id}
     [HttpGet("{id}")]
     public async Task<IActionResult> GetBooking(int id)
     {
         var booking = await _context.Bookings
+            .Include(b => b.Room)
+            .Include(b => b.User)
             .FirstOrDefaultAsync(b => b.Id == id && b.DeletedAt == null);
 
         if (booking == null)
@@ -72,12 +92,28 @@ public class BookingsController : ControllerBase
             RoomId = booking.RoomId,
             StartTime = booking.StartTime,
             EndTime = booking.EndTime,
-            Status = booking.Status,
-            CreatedAt = booking.CreatedAt
+            Status = booking.Status.ToString().ToLower(),
+            CreatedAt = booking.CreatedAt,
+
+            Room = new RoomResponseDto
+            {
+                Id = booking.Room!.Id,
+                Name = booking.Room.Name,
+                Capacity = booking.Room.Capacity
+            },
+
+            User = new UserResponseDto
+            {
+                Id = booking.User.Id,
+                Name = booking.User.Name,
+                Email = booking.User.Email,
+                Role = booking.User.Role
+            }
         });
     }
 
-    // POST /bookings
+
+    // POST: api/bookings
     [Authorize(Roles = "user")]
     [HttpPost]
     public async Task<IActionResult> CreateBooking([FromBody] BookingCreateDto dto)
@@ -94,16 +130,25 @@ public class BookingsController : ControllerBase
         if (!roomExists)
             return BadRequest(new { message = "Room does not exist" });
 
+        // Conflict only if existing booking is Approved
         var hasConflict = await _context.Bookings.AnyAsync(b =>
             b.RoomId == dto.RoomId &&
             b.DeletedAt == null &&
-            b.Status == "booked" &&
+            (b.Status == BookingStatus.Approved ||
+            b.Status == BookingStatus.Pending) &&
             dto.StartTime < b.EndTime &&
             dto.EndTime > b.StartTime
         );
 
+
         if (hasConflict)
-            return Conflict(new { message = "Room is already booked in the selected time range" });
+            {
+                return Conflict(new 
+                { 
+                    message = "Slot already booked or pending approval" 
+                });
+            }
+
 
         var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
@@ -113,7 +158,7 @@ public class BookingsController : ControllerBase
             StartTime = dto.StartTime,
             EndTime = dto.EndTime,
             UserId = userId,
-            Status = "booked",
+            Status = BookingStatus.Pending,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -121,10 +166,10 @@ public class BookingsController : ControllerBase
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetBooking), new { id = booking.Id }, booking);
+        return CreatedAtAction(nameof(GetBooking), new { id = booking.Id }, null);
     }
 
-    // PUT /bookings/{id}
+    // PUT: api/bookings/{id}/reschedule
     [Authorize(Roles = "user")]
     [HttpPut("{id}/reschedule")]
     public async Task<IActionResult> RescheduleBooking(int id, BookingRescheduleDto dto)
@@ -146,7 +191,7 @@ public class BookingsController : ControllerBase
             b.Id != id &&
             b.RoomId == dto.RoomId &&
             b.DeletedAt == null &&
-            b.Status == "booked" &&
+            b.Status == BookingStatus.Approved &&
             dto.StartTime < b.EndTime &&
             dto.EndTime > b.StartTime
         );
@@ -160,9 +205,10 @@ public class BookingsController : ControllerBase
         booking.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync();
-        return Ok(booking);
+        return Ok();
     }
 
+    // PUT: api/bookings/{id}/status
     [Authorize(Roles = "admin")]
     [HttpPut("{id}/status")]
     public async Task<IActionResult> UpdateBookingStatus(int id, BookingStatusUpdateDto dto)
@@ -173,14 +219,17 @@ public class BookingsController : ControllerBase
         if (booking == null)
             return NotFound();
 
-        booking.Status = dto.Status;
+        if (!Enum.TryParse<BookingStatus>(dto.Status, true, out var status))
+            return BadRequest("Invalid status");
+
+        booking.Status = status;
         booking.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync();
-        return Ok(booking);
+        return Ok();
     }
 
-    // DELETE /bookings/{id}
+    // DELETE: api/bookings/{id}
     [HttpDelete("{id}")]
     public async Task<IActionResult> CancelBooking(int id)
     {
@@ -196,11 +245,53 @@ public class BookingsController : ControllerBase
         if (booking.UserId != userId && role != "admin")
             return Forbid();
 
-        booking.Status = "cancelled";
+        booking.Status = BookingStatus.Cancelled;
         booking.DeletedAt = DateTimeOffset.UtcNow;
         booking.UpdatedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync();
         return NoContent();
+    }
+
+    // PATCH: api/bookings/{id}/approve
+    [Authorize(Roles = "admin")]
+    [HttpPatch("{id}/approve")]
+    public async Task<IActionResult> Approve(int id)
+    {
+        var booking = await _context.Bookings.FindAsync(id);
+
+        if (booking == null)
+            return NotFound();
+
+        if (booking.Status != BookingStatus.Pending)
+            return BadRequest("Only pending bookings can be approved");
+
+        booking.Status = BookingStatus.Approved;
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    // PATCH: api/bookings/{id}/reject
+    [Authorize(Roles = "admin")]
+    [HttpPatch("{id}/reject")]
+    public async Task<IActionResult> Reject(int id)
+    {
+        var booking = await _context.Bookings.FindAsync(id);
+
+        if (booking == null)
+            return NotFound();
+
+        if (booking.Status != BookingStatus.Pending)
+            return BadRequest("Only pending bookings can be rejected");
+
+        booking.Status = BookingStatus.Rejected;
+        booking.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Ok();
     }
 }

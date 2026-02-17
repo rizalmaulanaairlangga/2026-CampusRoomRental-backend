@@ -1,3 +1,5 @@
+namespace Backend.DTOs;
+
 public class BookingRescheduleDto
 {
     public int RoomId { get; set; }

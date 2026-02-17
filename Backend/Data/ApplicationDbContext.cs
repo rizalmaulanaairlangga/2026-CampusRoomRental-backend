@@ -14,11 +14,13 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
+        // other modelBuilder configurations...
 
-        modelBuilder.Entity<Room>()
-            .HasMany(r => r.Bookings)
-            .WithOne(b => b.Room!)
-            .HasForeignKey(b => b.RoomId);
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20); // optional: set length for string column
+
+        base.OnModelCreating(modelBuilder);
     }
 }

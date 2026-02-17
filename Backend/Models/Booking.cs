@@ -1,5 +1,13 @@
 namespace Backend.Models;
 
+public enum BookingStatus
+{
+    Pending,
+    Approved,
+    Rejected,
+    Cancelled
+}
+
 public class Booking
 {
     public int Id { get; set; }
@@ -7,16 +15,15 @@ public class Booking
     public int RoomId { get; set; }
     public Room? Room { get; set; }
 
-    public DateTimeOffset  StartTime { get; set; }
-    public DateTimeOffset  EndTime { get; set; }
+    public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset EndTime { get; set; }
 
-    public string Status { get; set; } = "booked";
+    public BookingStatus Status { get; set; } = BookingStatus.Pending;
 
-    public DateTimeOffset  CreatedAt { get; set; } = DateTimeOffset .UtcNow;
-    public DateTimeOffset  UpdatedAt { get; set; } = DateTimeOffset .UtcNow;
-    public DateTimeOffset ? DeletedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? DeletedAt { get; set; }
 
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
-
 }
